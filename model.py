@@ -2,7 +2,7 @@ from database import Base
 from sqlalchemy import Column, Integer, String, Float, Boolean
 
 class LegoSet(Base):
-    __table_name__() = "lego_sets"
+    __tablename__ = "lego_sets"
 
     id = Column(Integer, primary_key=True, index=True)
     set_name = Column(String)
