@@ -1,7 +1,7 @@
 <div align="center">
   <h1>LEGO Portfolio Tracker API</h1>
   <img src="lego_plants.jpg" width="700">
-  <p><i> 🌸 Tracking the growth of favorite Lego collections 🌸</i></p>
+  <p> 🌸Tracking the growth of favorite Lego collections🌸</p>
 </div>
 
 A FastAPI-based backend to track LEGO set collections, purchase prices, and market values.
