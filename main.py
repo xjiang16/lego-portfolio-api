@@ -1,5 +1,9 @@
 from fastapi import FastAPI
+import model
+from database import engine
 from schemas import LegoSet
+
+model.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
