@@ -5,8 +5,8 @@ class LegoSet(Base):
     __tablename__ = "lego_sets"
 
     id = Column(Integer, primary_key=True, index=True)
-    set_name = Column(String)
     set_name = Column(String, unique=True)
+    set_number = Column(String, unique=True)
     theme = Column(String)
     purchase_price = Column(Float)
     quantity = Column(Integer)
