@@ -14,3 +14,13 @@ def home():
 @app.post("/add-set")
 def create_set(item: LegoSet):
     return {"status": "Success", "added_item": item}
+
+@app.get("/sets")
+def get_all_sets():
+    db = SessionLocal()
+    try:
+        # add one final "View" button
+        all_sets = db.query(model.LegoSet).all()
+        return all_sets
+    finally:
+        db.close()
