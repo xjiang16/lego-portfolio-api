@@ -23,8 +23,8 @@ The project uses **SQLite** for local data persistence and **SQLAlchemy** as the
 ### Security & API Integration
 To protect sensitive credentials (eBay/Rebrickable/BrickLink), the project utilizes a `.env` architecture.
 - **Environment Management:** Keys are stored locally and excluded from version control via `.gitignore`.
-- **Authentication:** Integrated `requests-oauthlib` for future OAuth 1.1 handshakes with marketplace APIs.
-
+- **Authentication:** Prepared for `requests-oauthlib` handshakes with marketplace APIs.
+- 
 ## Data Pipeline (ETL)
 The project includes a dedicated ETL script (`scripts/etl_pipeline.py`) to handle bulk data ingestion.
 - **Extract:** Mimics fetching raw LEGO data from external sources.
@@ -38,8 +38,8 @@ The project includes a dedicated ETL script (`scripts/etl_pipeline.py`) to handl
 - [x] Developed ETL Pipeline for bulk data ingestion 
 - [x] Implemented **POST /add-set** with duplicate detection logic
 - [x] Created **GET /portfolio/stats** for real-time investment tracking
-- [ ] Integrate Live eBay/BrickLink Market Data (Pending API Approval)
-- [ ] Implement ROI and Net Profit visualization
+- [x] **Developed Market Simulation Service (Mock Data)**
+- [ ] Transition from Mock to Live eBay Market Data (Pending final API key activation)
 
 ## How to Run
 1. **Setup Environment:**

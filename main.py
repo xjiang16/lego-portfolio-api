@@ -3,7 +3,7 @@ from fastapi import HTTPException
 import model
 from database import engine, SessionLocal
 import schemas
-from schemas import LegoSet
+from services import market
 
 model.Base.metadata.create_all(bind=engine)
 
@@ -48,15 +48,28 @@ def get_portfolio_stats():
     try:
         sets = db.query(model.LegoSet).all()
 
-        total_count = len(sets)
-        # Summing up what you actually paid
-        total_investment = sum(s.purchase_price for s in sets if s.purchase_price)
+        total_spent = 0
+        total_value = 0
+
+        for s in sets:
+            # Multiply by quantity to get the true total
+            total_spent += (s.purchase_price * s.quantity)
+            current_price = market.get_market_price(s.set_number)
+            total_value += (current_price * s.quantity)
+
+        profit = total_value - total_spent
+        roi = (profit / total_spent * 100) if total_spent > 0 else 0
 
         return {
             "user": "Xiaoqi Jiang",
-            "total_sets_owned": total_count,
-            "total_capital_invested": f"${total_investment:,.2f}",
-            "status": "Awaiting Live Market Data from eBay"
+            "total_sets": len(sets),
+            "summary": {
+                "total_investment": f"${total_spent:,.2f}",
+                "current_market_value": f"${total_value:,.2f}",
+                "net_profit": f"${profit:,.2f}",
+                "roi_percentage": f"{roi:.2f}%"
+            },
+            "note": "Market data currently provided by Mock Service"
         }
     finally:
         db.close()
