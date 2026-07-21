@@ -1,38 +1,75 @@
 import sys
 import os
+import requests
+from dotenv import load_dotenv
 
-# 1. THE CONNECTION: This tells Python to look outside the 'scripts' folder so it can find the database.py and models.py files.
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import SessionLocal
 import model
 
+load_dotenv()
+API_KEY = os.getenv("REBRICKABLE_API_KEY")
+HEADERS = {"Authorization": f"key {API_KEY}"}
+
 # --- PHASE 1: EXTRACT ---
-raw_lego_data = [
-    {"name": "Tiny Plants", "number": "10329", "price": "$49.99"},
-    {"name": "Succulents", "number": "10309", "price": "44.99 USD"},
-    {"name": "Orchid", "number": "10311", "price": "49.99"},
+# My "shopping list" — sets you own + what I paid.
+# Rebrickable fills in the rest (name, theme, etc) since it doesn't know my purchase price.
+my_sets = [
+    {"set_number": "10329", "purchase_price": 49.99, "quantity": 1},
+    {"set_number": "10309", "purchase_price": 44.99, "quantity": 1},
+    {"set_number": "10311", "purchase_price": 49.99, "quantity": 1},
 ]
 
+def fetch_set_details(set_number):
+    """Calls Rebrickable for real catalog data on one set."""
+    url = f"https://rebrickable.com/api/v3/lego/sets/{set_number}-1/"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        print(f"Could not fetch {set_number}: status {response.status_code}")
+        return None
+
+    return response.json()
+
+
+def fetch_theme_name(theme_id):
+    """Rebrickable only gives us a numeric theme_id — resolve it to a real name."""
+    url = f"https://rebrickable.com/api/v3/lego/themes/{theme_id}/"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        return "Unknown"
+
+    return response.json().get("name", "Unknown")
+
+
 # --- PHASE 2: TRANSFORM ---
-def clean_data(raw_list):
+def build_cleaned_data(shopping_list):
     cleaned_items = []
-    for item in raw_list:
-        raw_price = str(item.get("price", "0"))
-        clean_price = float(raw_price.replace("$", "").replace("USD", "").strip())
+
+    for item in shopping_list:
+        details = fetch_set_details(item["set_number"])
+
+        if details is None:
+            continue  
+
+        theme_name = fetch_theme_name(details["theme_id"])
+        print(f"{item['set_number']} -> {details['name']} | theme: {theme_name}")  
 
         cleaned_items.append({
-            "set_name": item.get("name"),
-            "set_number": item.get("number"),
-            "purchase_price": clean_price,
-            "theme": "Botanical",
-            "quantity": 1,
+            "set_name": details["name"],
+            "set_number": item["set_number"],
+            "purchase_price": item["purchase_price"],
+            "theme": theme_name,
+            "quantity": item["quantity"],
             "condition": "New"
         })
 
     return cleaned_items
 
-# --- PHASE 3: LOAD ---
+
+# --- PHASE 3: LOAD --- 
 def load_to_db(cleaned_data):
     db = SessionLocal()
     loaded_count = 0
@@ -61,8 +98,9 @@ def load_to_db(cleaned_data):
     finally:
         db.close()
 
+
 # --- THE TRIGGER ---
 if __name__ == "__main__":
-    print("Starting ETL Pipeline...")
-    cleaned = clean_data(raw_lego_data)
+    print("Starting ETL Pipeline (Rebrickable-powered)...")
+    cleaned = build_cleaned_data(my_sets)
     load_to_db(cleaned)

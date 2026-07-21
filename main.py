@@ -7,6 +7,25 @@ from services import market
 
 model.Base.metadata.create_all(bind=engine)
 
+def seed_if_empty():
+    """If the DB is empty (e.g. fresh deploy on ephemeral storage), populate demo data."""
+    db = SessionLocal()
+    try:
+        if db.query(model.LegoSet).count() == 0:
+            print("Database empty — seeding demo data...")
+            demo_sets = [
+                {"set_name": "Tiny Plants", "set_number": "10329", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New"},
+                {"set_name": "Succulents", "set_number": "10309", "theme": "Botanicals", "purchase_price": 44.99, "quantity": 1, "condition": "New"},
+                {"set_name": "Orchid", "set_number": "10311", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New"},
+            ]
+            for s in demo_sets:
+                db.add(model.LegoSet(**s))
+            db.commit()
+    finally:
+        db.close()
+
+seed_if_empty()
+
 app = FastAPI()
 
 @app.get("/")
