@@ -73,3 +73,12 @@ def get_portfolio_stats():
         }
     finally:
         db.close()
+
+@app.get("/portfolio/history")
+def get_price_history():
+    db = SessionLocal()
+    try:
+        history = db.query(model.PriceHistory).order_by(model.PriceHistory.captured_at).all()
+        return history
+    finally:
+        db.close()

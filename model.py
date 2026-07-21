@@ -1,5 +1,6 @@
 from database import Base
-from sqlalchemy import Column, Integer, String, Float, Boolean
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
 
 class LegoSet(Base):
     __tablename__ = "lego_sets"
@@ -14,3 +15,12 @@ class LegoSet(Base):
     condition = Column(String)
     is_sealed = Column(Boolean, default=True)
     notes = Column(String, nullable=True)
+
+
+class PriceHistory(Base):
+    __tablename__ = "price_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    set_number = Column(String, index=True)  # which set this snapshot belongs to
+    price = Column(Float)                     # the market price at that moment
+    captured_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -35,26 +35,34 @@ def clean_data(raw_list):
 # --- PHASE 3: LOAD ---
 def load_to_db(cleaned_data):
     db = SessionLocal()
+    loaded_count = 0
+    skipped_count = 0
     try:
         for item in cleaned_data:
-        # Create a 'Model' object for the database
+            existing = db.query(model.LegoSet).filter(
+                model.LegoSet.set_number == item["set_number"]
+            ).first()
+
+            if existing:
+                skipped_count += 1
+                continue
+
             new_set = model.LegoSet(**item)
             db.add(new_set)
+            loaded_count += 1
 
         db.commit()
-        print(f"Successfully loaded {len(cleaned_data)} sets!")
+        print(f"Loaded {loaded_count} new sets, skipped {skipped_count} duplicates.")
 
     except Exception as e:
         print(f"Error loading to DB: {e}")
         db.rollback()
-        # If it fails, don't save half-finished data
 
     finally:
         db.close()
 
 # --- THE TRIGGER ---
 if __name__ == "__main__":
-    print(f"Columns in LegoSet: {model.LegoSet.__table__.columns.keys()}")
     print("Starting ETL Pipeline...")
     cleaned = clean_data(raw_lego_data)
     load_to_db(cleaned)

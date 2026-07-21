@@ -28,7 +28,7 @@ try:
 
     # Clean up the dataframe for display
     display_df = df[['set_name', 'set_number', 'theme', 'purchase_price', 'quantity']]
-    st.dataframe(display_df, use_container_width=True)
+    st.dataframe(display_df, width='stretch')
 
     # 4. VISUALS: Theme Distribution
     st.subheader("Portfolio Composition by Theme")
@@ -55,6 +55,35 @@ with st.sidebar:
                 "estimated_market_value": price, "condition": "New",
                 "is_sealed": True, "notes": ""
             }
-            requests.post("http://127.0.0.1:8000/add-set", json=payload)
-            st.success("Set Added!")
-            st.rerun() # Refresh the dashboard
+            response = requests.post("http://127.0.0.1:8000/add-set", json=payload)
+
+            if response.status_code == 200:
+                st.success("Set Added!")
+                st.rerun()
+            else:
+                error_detail = response.json().get("detail", "Unknown error")
+                st.error(f"Failed to add set: {error_detail}")
+
+# 5. VISUALS: Price Trend Over Time
+st.subheader("Price History Over Time")
+try:
+    history_res = requests.get("http://127.0.0.1:8000/portfolio/history").json()
+
+    if history_res:
+        history_df = pd.DataFrame(history_res)
+        history_df['captured_at'] = pd.to_datetime(history_df['captured_at'])
+
+        fig_trend = px.line(
+            history_df,
+            x='captured_at',
+            y='price',
+            color='set_number',
+            title="Market Price Trend by Set",
+            markers=True
+        )
+        st.plotly_chart(fig_trend)
+    else:
+        st.info("No price history yet — run scripts/snapshot_prices.py to start tracking.")
+
+except Exception as e:
+    st.error(f"Could not load price history. Error: {e}")
