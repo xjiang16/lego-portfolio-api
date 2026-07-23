@@ -15,12 +15,15 @@ class LegoSet(Base):
     condition = Column(String)
     is_sealed = Column(Boolean, default=True)
     notes = Column(String, nullable=True)
+    year = Column(Integer, nullable=True) 
+    num_parts = Column(Integer, nullable=True)
+    image_url = Column(String, nullable=True)
 
 
 class PriceHistory(Base):
     __tablename__ = "price_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    set_number = Column(String, index=True)  # which set this snapshot belongs to
-    price = Column(Float)                     # the market price at that moment
+    set_number = Column(String, index=True)
+    price = Column(Float)
     captured_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

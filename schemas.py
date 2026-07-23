@@ -13,4 +13,6 @@ class LegoSet(BaseModel):
     condition: str
     is_sealed: bool
     notes: str
-
+    year: Optional[int] = None
+    num_parts: Optional[int] = None
+    image_url: Optional[str] = None

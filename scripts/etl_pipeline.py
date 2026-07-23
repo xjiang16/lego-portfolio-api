@@ -63,7 +63,10 @@ def build_cleaned_data(shopping_list):
             "purchase_price": item["purchase_price"],
             "theme": theme_name,
             "quantity": item["quantity"],
-            "condition": "New"
+            "condition": "New",
+            "year": details.get("year"),
+            "num_parts": details.get("num_parts"),
+            "image_url": details.get("set_img_url"),
         })
 
     return cleaned_items

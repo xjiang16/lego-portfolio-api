@@ -4,6 +4,13 @@ import model
 from database import engine, SessionLocal
 import schemas
 from services import market
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+REBRICKABLE_API_KEY = os.getenv("REBRICKABLE_API_KEY")
+REBRICKABLE_HEADERS = {"Authorization": f"key {REBRICKABLE_API_KEY}"}
 
 model.Base.metadata.create_all(bind=engine)
 
@@ -14,9 +21,9 @@ def seed_if_empty():
         if db.query(model.LegoSet).count() == 0:
             print("Database empty — seeding demo data...")
             demo_sets = [
-                {"set_name": "Tiny Plants", "set_number": "10329", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New"},
-                {"set_name": "Succulents", "set_number": "10309", "theme": "Botanicals", "purchase_price": 44.99, "quantity": 1, "condition": "New"},
-                {"set_name": "Orchid", "set_number": "10311", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New"},
+                {"set_name": "Tiny Plants", "set_number": "10329", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New", "year": 2023, "num_parts": 758, "image_url": "https://cdn.rebrickable.com/media/sets/10329-1/128976.jpg"},
+                {"set_name": "Succulents", "set_number": "10309", "theme": "Botanicals", "purchase_price": 44.99, "quantity": 1, "condition": "New", "year": 2022, "num_parts": 771, "image_url": "https://cdn.rebrickable.com/media/sets/10309-1/126868.jpg"},
+                {"set_name": "Orchid", "set_number": "10311", "theme": "Botanicals", "purchase_price": 49.99, "quantity": 1, "condition": "New", "year": 2022, "num_parts": 608, "image_url": "https://cdn.rebrickable.com/media/sets/10311-1/126896.jpg"},
             ]
             for s in demo_sets:
                 db.add(model.LegoSet(**s))
@@ -101,3 +108,25 @@ def get_price_history():
         return history
     finally:
         db.close()
+
+@app.get("/lookup-set/{set_number}")
+def lookup_set(set_number: str):
+    url = f"https://rebrickable.com/api/v3/lego/sets/{set_number}-1/"
+    response = requests.get(url, headers=REBRICKABLE_HEADERS)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail=f"Set {set_number} not found in Rebrickable")
+
+    details = response.json()
+
+    theme_url = f"https://rebrickable.com/api/v3/lego/themes/{details['theme_id']}/"
+    theme_response = requests.get(theme_url, headers=REBRICKABLE_HEADERS)
+    theme_name = theme_response.json().get("name", "Unknown") if theme_response.status_code == 200 else "Unknown"
+
+    return {
+        "set_name": details["name"],
+        "theme": theme_name,
+        "year": details.get("year"),
+        "num_parts": details.get("num_parts"),
+        "image_url": details.get("set_img_url")
+    }

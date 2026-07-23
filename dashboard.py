@@ -3,6 +3,11 @@ import requests
 import pandas as pd
 import plotly.express as px
 
+import os
+
+# Use the deployed backend URL if set (for production), otherwise fall back to localhost (for local dev)
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
 # Setup the page
 st.set_page_config(page_title="LEGO Portfolio Tracker", layout="wide")
 
@@ -11,8 +16,8 @@ st.markdown("Real-time valuation and ROI tracking")
 
 # 1. FETCH DATA FROM YOUR FASTAPI
 try:
-    stats_res = requests.get("http://127.0.0.1:8000/portfolio/stats").json()
-    sets_res = requests.get("http://127.0.0.1:8000/sets").json()
+    stats_res = requests.get(f"{API_BASE_URL}/portfolio/stats").json()
+    sets_res = requests.get(f"{API_BASE_URL}/sets").json()
 
     # 2. TOP METRICS
     col1, col2, col3, col4 = st.columns(4)
@@ -27,7 +32,7 @@ try:
     df = pd.DataFrame(sets_res)
 
     # Clean up the dataframe for display
-    display_df = df[['set_name', 'set_number', 'theme', 'purchase_price', 'quantity']]
+    display_df = df[[ 'set_name', 'set_number', 'theme', 'year', 'num_parts', 'purchase_price', 'quantity']]
     st.dataframe(display_df, width='stretch')
 
     # 4. VISUALS: Theme Distribution
@@ -40,22 +45,61 @@ except Exception as e:
 
 with st.sidebar:
     st.header("➕ Add New Set")
+
+    # Set up storage for what the lookup finds, so the form fields below can use it
+    for key, default in [
+        ("lookup_name", ""), ("lookup_theme", ""),
+        ("lookup_year", None), ("lookup_num_parts", None), ("lookup_image_url", None)
+    ]:
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+    def handle_set_number_lookup():
+        set_num = st.session_state.get("set_number_input", "").strip()
+        if not set_num:
+            return
+        try:
+            resp = requests.get(f"{API_BASE_URL}/lookup-set/{set_num}")
+            if resp.status_code == 200:
+                data = resp.json()
+                st.session_state["lookup_name"] = data["set_name"]
+                st.session_state["lookup_theme"] = data["theme"]
+                st.session_state["lookup_year"] = data.get("year")
+                st.session_state["lookup_num_parts"] = data.get("num_parts")
+                st.session_state["lookup_image_url"] = data.get("image_url")
+            else:
+                st.warning(f"Set {set_num} not found in Rebrickable — you can still fill in details manually.")
+        except Exception:
+            pass  # network hiccup — fields just stay as-is, user can type manually
+
+    # Lives OUTSIDE the form on purpose — this is what makes the live lookup possible
+    set_number = st.text_input(
+        "Set Number (enter this first)",
+        key="set_number_input",
+        on_change=handle_set_number_lookup
+    )
+
+    if st.session_state["lookup_image_url"]:
+        st.image(st.session_state["lookup_image_url"], width=120)
+
     with st.form("add_set_form"):
-        name = st.text_input("Set Name")
-        num = st.text_input("Set Number")
-        theme = st.selectbox("Theme", ["Botanical", "Icons", "Star Wars", "Ideas"])
+        name = st.text_input("Set Name", key="lookup_name")
+        theme = st.text_input("Theme", key="lookup_theme")
         price = st.number_input("Purchase Price", min_value=0.0)
         qty = st.number_input("Quantity", min_value=1)
 
         submit = st.form_submit_button("Add to Collection")
         if submit:
             payload = {
-                "set_name": name, "set_number": num, "theme": theme,
+                "set_name": name, "set_number": set_number, "theme": theme,
                 "purchase_price": price, "quantity": qty,
                 "estimated_market_value": price, "condition": "New",
-                "is_sealed": True, "notes": ""
+                "is_sealed": True, "notes": "",
+                "year": st.session_state["lookup_year"],
+                "num_parts": st.session_state["lookup_num_parts"],
+                "image_url": st.session_state["lookup_image_url"],
             }
-            response = requests.post("http://127.0.0.1:8000/add-set", json=payload)
+            response = requests.post(f"{API_BASE_URL}/add-set", json=payload)
 
             if response.status_code == 200:
                 st.success("Set Added!")
@@ -67,7 +111,7 @@ with st.sidebar:
 # 5. VISUALS: Price Trend Over Time
 st.subheader("Price History Over Time")
 try:
-    history_res = requests.get("http://127.0.0.1:8000/portfolio/history").json()
+    history_res = requests.get(f"{API_BASE_URL}/portfolio/history").json()
 
     if history_res:
         history_df = pd.DataFrame(history_res)
