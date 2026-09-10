@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -16,3 +17,8 @@ class LegoSet(BaseModel):
     year: Optional[int] = None
     num_parts: Optional[int] = None
     image_url: Optional[str] = None
+    retirement_date: Optional[date] = None
+
+
+class RetirementDateUpdate(BaseModel):
+    retirement_date: Optional[date] = None

@@ -26,6 +26,12 @@ def test_optional_fields_default_to_none():
     lego_set = LegoSet(**VALID_SET)
     assert lego_set.num_parts is None
     assert lego_set.image_url is None
+    assert lego_set.retirement_date is None
+
+
+def test_retirement_date_parses_iso_string():
+    lego_set = LegoSet(**{**VALID_SET, "retirement_date": "2027-01-01"})
+    assert lego_set.retirement_date.isoformat() == "2027-01-01"
 
 
 @pytest.mark.parametrize("missing_field", ["set_name", "set_number", "purchase_price", "quantity"])

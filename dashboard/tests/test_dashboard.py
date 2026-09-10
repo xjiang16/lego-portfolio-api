@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from unittest.mock import Mock, patch
 
 from streamlit.testing.v1 import AppTest
@@ -19,13 +20,13 @@ SETS = [
         "id": 1, "set_name": "Tiny Plants", "set_number": "10329", "theme": "Botanicals",
         "purchase_price": 49.99, "quantity": 1, "year": 2023, "num_parts": 758,
         "image_url": "https://example.com/a.jpg", "condition": "New", "is_sealed": True,
-        "notes": None, "estimated_market_value": None,
+        "notes": None, "estimated_market_value": None, "retirement_date": None,
     },
     {
         "id": 2, "set_name": "Succulents", "set_number": "10309", "theme": "Succulents",
         "purchase_price": 44.99, "quantity": 1, "year": 2022, "num_parts": 771,
         "image_url": "https://example.com/b.jpg", "condition": "New", "is_sealed": True,
-        "notes": None, "estimated_market_value": None,
+        "notes": None, "estimated_market_value": None, "retirement_date": None,
     },
 ]
 
@@ -95,6 +96,23 @@ def test_table_falls_back_gracefully_with_no_price_history():
     df = at.dataframe[0].value
     assert df["current_value"].isna().all()
     assert df["profit"].isna().all()
+
+
+def test_retiring_soon_flag_shows_for_near_retirement_dates():
+    soon = (date.today() + timedelta(days=30)).isoformat()
+    far = (date.today() + timedelta(days=200)).isoformat()
+    sets_with_retirement = [
+        {**SETS[0], "retirement_date": soon},
+        {**SETS[1], "retirement_date": far},
+    ]
+
+    with patch("requests.get", side_effect=_fake_get(STATS, sets_with_retirement, HISTORY)):
+        at = AppTest.from_file("dashboard/dashboard.py")
+        at.run(timeout=15)
+
+    df = at.dataframe[0].value.set_index("set_name")
+    assert df.loc["Tiny Plants", "retirement_status"] == "🔥 Retiring soon"
+    assert df.loc["Succulents", "retirement_status"] == ""
 
 
 def test_theme_filter_narrows_table_but_not_top_metrics():

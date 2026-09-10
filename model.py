@@ -1,6 +1,6 @@
 from database import Base
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date
 
 class LegoSet(Base):
     __tablename__ = "lego_sets"
@@ -15,9 +15,12 @@ class LegoSet(Base):
     condition = Column(String)
     is_sealed = Column(Boolean, default=True)
     notes = Column(String, nullable=True)
-    year = Column(Integer, nullable=True) 
+    year = Column(Integer, nullable=True)
     num_parts = Column(Integer, nullable=True)
     image_url = Column(String, nullable=True)
+    # Manually entered for now — Rebrickable doesn't expose retirement data,
+    # and Brickset integration is a future addition (see issue #3).
+    retirement_date = Column(Date, nullable=True)
 
 
 class PriceHistory(Base):

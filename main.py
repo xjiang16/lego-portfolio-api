@@ -81,6 +81,17 @@ def delete_set(set_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Successfully deleted {db_set.set_name}"}
 
+@app.patch("/sets/{set_id}/retirement-date")
+def update_retirement_date(set_id: int, payload: schemas.RetirementDateUpdate, db: Session = Depends(get_db)):
+    db_set = db.query(model.LegoSet).filter(model.LegoSet.id == set_id).first()
+
+    if not db_set:
+        raise HTTPException(status_code=404, detail=f"Set with id {set_id} not found")
+
+    db_set.retirement_date = payload.retirement_date
+    db.commit()
+    return {"message": f"Updated retirement date for {db_set.set_name}"}
+
 def _compute_portfolio_totals(db: Session):
     sets = db.query(model.LegoSet).all()
 

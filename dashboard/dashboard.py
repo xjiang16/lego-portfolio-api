@@ -4,6 +4,9 @@ import pandas as pd
 import plotly.express as px
 
 import os
+from datetime import date, timedelta
+
+RETIRING_SOON_WINDOW_DAYS = 90
 
 # Use the deployed backend URL if set (for production), otherwise fall back to localhost (for local dev)
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
@@ -50,6 +53,15 @@ try:
     df['current_value'] = df['current_price'] * df['quantity']
     df['profit'] = df['current_value'] - (df['purchase_price'] * df['quantity'])
 
+    # Flag sets whose (manually-entered) retirement_date falls within the "about to retire" window.
+    if 'retirement_date' in df.columns:
+        retirement_dates = pd.to_datetime(df['retirement_date'], errors='coerce')
+        days_to_retirement = (retirement_dates - pd.Timestamp(date.today())).dt.days
+        df['retiring_soon'] = days_to_retirement.between(0, RETIRING_SOON_WINDOW_DAYS)
+    else:
+        df['retiring_soon'] = False
+    df['retirement_status'] = df['retiring_soon'].map({True: "🔥 Retiring soon", False: ""})
+
     # Theme filter — scoped to just this table, so the summary metrics and pie chart above/below
     # keep showing the whole portfolio regardless of what's selected here.
     themes = sorted(df['theme'].dropna().unique().tolist())
@@ -59,7 +71,7 @@ try:
     # Clean up the dataframe for display
     display_df = filtered_df[[
         'image_url', 'set_name', 'set_number', 'theme', 'year', 'num_parts',
-        'purchase_price', 'quantity', 'current_value', 'profit',
+        'purchase_price', 'quantity', 'current_value', 'profit', 'retirement_status',
     ]]
     st.dataframe(
         display_df,
@@ -69,6 +81,7 @@ try:
             "purchase_price": st.column_config.NumberColumn("Purchase Price", format="$%.2f"),
             "current_value": st.column_config.NumberColumn("Current Value", format="$%.2f"),
             "profit": st.column_config.NumberColumn("Profit", format="$%.2f"),
+            "retirement_status": st.column_config.TextColumn("Retirement"),
         },
     )
 
@@ -94,6 +107,27 @@ try:
                     st.error("Failed to remove set.")
         else:
             st.info("No sets to remove.")
+
+    # 3.6 SET RETIREMENT DATE
+    # Manually entered for now — Rebrickable doesn't expose LEGO's official retirement dates.
+    with st.expander("🏷️ Set Retirement Date"):
+        if not df.empty:
+            options = {f"{row.set_name} ({row.set_number})": row.id for row in df.itertuples()}
+            selected_label = st.selectbox("Select a set", options.keys(), key="retirement_set_select")
+            new_date = st.date_input("Retirement date", value=None, key="retirement_date_input")
+            if st.button("Save Retirement Date"):
+                set_id = options[selected_label]
+                patch_resp = requests.patch(
+                    f"{API_BASE_URL}/sets/{set_id}/retirement-date",
+                    json={"retirement_date": new_date.isoformat() if new_date else None},
+                )
+                if patch_resp.status_code == 200:
+                    st.success("Retirement date saved!")
+                    st.rerun()
+                else:
+                    st.error("Failed to save retirement date.")
+        else:
+            st.info("No sets yet.")
 
     # 4. VISUALS: Theme Distribution
     st.subheader("Portfolio Composition by Theme")
