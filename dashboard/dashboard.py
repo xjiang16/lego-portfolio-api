@@ -79,6 +79,22 @@ try:
         mime="text/csv",
     )
 
+    # 3.5 REMOVE A SET
+    with st.expander("🗑️ Remove a Set"):
+        if not df.empty:
+            options = {f"{row.set_name} ({row.set_number})": row.id for row in df.itertuples()}
+            selected_label = st.selectbox("Select a set to remove", options.keys())
+            if st.button("Delete Selected Set"):
+                set_id = options[selected_label]
+                del_resp = requests.delete(f"{API_BASE_URL}/sets/{set_id}")
+                if del_resp.status_code == 200:
+                    st.success("Set removed!")
+                    st.rerun()
+                else:
+                    st.error("Failed to remove set.")
+        else:
+            st.info("No sets to remove.")
+
     # 4. VISUALS: Theme Distribution
     st.subheader("Portfolio Composition by Theme")
     fig = px.pie(df, names='theme', title="Sets per Theme", hole=0.4)

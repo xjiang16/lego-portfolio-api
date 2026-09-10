@@ -39,3 +39,21 @@ def test_add_set_rejects_duplicate_set_number(client):
 
     # Duplicate must not have been inserted alongside the original.
     assert len(client.get("/sets").json()) == 1
+
+
+def test_delete_set_removes_it(client):
+    client.post("/add-set", json=SET_PAYLOAD)
+    set_id = client.get("/sets").json()[0]["id"]
+
+    response = client.delete(f"/sets/{set_id}")
+
+    assert response.status_code == 200
+    assert "Tiny Plants" in response.json()["message"]
+    assert client.get("/sets").json() == []
+
+
+def test_delete_nonexistent_set_returns_404(client):
+    response = client.delete("/sets/9999")
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]

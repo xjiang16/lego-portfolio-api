@@ -70,6 +70,17 @@ def create_set(lego_set: schemas.LegoSet, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Successfully added {lego_set.set_name}!"}
 
+@app.delete("/sets/{set_id}")
+def delete_set(set_id: int, db: Session = Depends(get_db)):
+    db_set = db.query(model.LegoSet).filter(model.LegoSet.id == set_id).first()
+
+    if not db_set:
+        raise HTTPException(status_code=404, detail=f"Set with id {set_id} not found")
+
+    db.delete(db_set)
+    db.commit()
+    return {"message": f"Successfully deleted {db_set.set_name}"}
+
 @app.get("/portfolio/stats")
 def get_portfolio_stats(db: Session = Depends(get_db)):
     sets = db.query(model.LegoSet).all()
@@ -88,7 +99,8 @@ def get_portfolio_stats(db: Session = Depends(get_db)):
 
     return {
         "user": "Xiaoqi Jiang",
-        "total_sets": len(sets),
+        # Total physical sets owned, not just distinct rows — a row with quantity=3 counts as 3.
+        "total_sets": sum(s.quantity for s in sets),
         "summary": {
             "total_investment": f"${total_spent:,.2f}",
             "current_market_value": f"${total_value:,.2f}",

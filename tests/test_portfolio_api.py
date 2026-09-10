@@ -28,11 +28,22 @@ def test_stats_computes_investment_value_and_roi(client, monkeypatch):
     stats = client.get("/portfolio/stats").json()
 
     # 2 sets purchased at $50 each = $100 invested; mocked market price of $75 * 2 = $150 value.
-    assert stats["total_sets"] == 1
+    # total_sets counts physical sets owned (quantity), not distinct rows.
+    assert stats["total_sets"] == 2
     assert stats["summary"]["total_investment"] == "$100.00"
     assert stats["summary"]["current_market_value"] == "$150.00"
     assert stats["summary"]["net_profit"] == "$50.00"
     assert stats["summary"]["roi_percentage"] == "50.00%"
+
+
+def test_total_sets_sums_quantity_across_multiple_rows(client, monkeypatch):
+    monkeypatch.setattr("main.market.get_market_price", lambda set_number: 10.0)
+
+    client.post("/add-set", json=SET_PAYLOAD)  # quantity=2
+    client.post("/add-set", json={**SET_PAYLOAD, "set_name": "Succulents", "set_number": "10309", "quantity": 3})
+
+    stats = client.get("/portfolio/stats").json()
+    assert stats["total_sets"] == 5
 
 
 def test_history_empty_by_default(client):
