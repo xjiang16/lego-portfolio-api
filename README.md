@@ -7,10 +7,17 @@
 <p>A comprehensive portfolio management system featuring a FastAPI backend and a Streamlit analytics dashboard.<p>
 
 ## 🔗 Live Demo
+[![LEGO ROI](https://lego-portfolio-api.onrender.com/badge/roi.svg)](https://lego-portfolio-api.onrender.com/docs)
 - **Dashboard:** [de-lego-portfolio-api.streamlit.app](https://de-lego-portfolio-api.streamlit.app)
 - **API Docs (Swagger UI):** [lego-portfolio-api.onrender.com/docs](https://lego-portfolio-api.onrender.com/docs)
 
 > Note: the backend runs on Render's free tier, which spins down after inactivity. The first request after a period of inactivity may take 30–60 seconds to respond while the service wakes up.
+
+### Embeddable ROI Badge
+`GET /badge/roi.svg` renders a live, shields.io-style SVG badge from `/portfolio/stats` — green for positive ROI, red for negative, gray "n/a" if nothing's invested yet. Drop it into any README or profile page:
+```markdown
+[![LEGO ROI](https://lego-portfolio-api.onrender.com/badge/roi.svg)](https://lego-portfolio-api.onrender.com/docs)
+```
 
 ## 📸 Demo
 
